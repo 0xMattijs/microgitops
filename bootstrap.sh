@@ -327,6 +327,12 @@ S3_REGION="${S3_REGION:-nyc3}"
 S3_ENDPOINT="${S3_ENDPOINT:-https://nyc3.digitaloceanspaces.com}"
 DOCTL_CONTEXT="${DOCTL_CONTEXT:-gitops-context}"
 
+# Set default values for droplet configuration if not defined in .env
+DROPLET_SIZE="${DROPLET_SIZE:-s-2vcpu-4gb}"
+DROPLET_IMAGE="${DROPLET_IMAGE:-ubuntu-22-04-x64}"
+DROPLET_REGION="${DROPLET_REGION:-ams3}"
+DROPLET_NAME="${DROPLET_NAME:-gitops-node}"
+
 # Create S3 bucket if it doesn't exist
 create_s3_bucket "$S3_BUCKET" "$S3_REGION" "$S3_ENDPOINT" "$DO_TOKEN"
 
