@@ -178,9 +178,11 @@ until kubectl get nodes 2>/dev/null; do
     sleep 10
 done
 
-# Install DigitalOcean CSI Driver
-echo "Installing DigitalOcean CSI Driver..."
-kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.8.0.yaml
+# Install DigitalOcean CSI driver
+echo "Installing DigitalOcean CSI driver..."
+kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/crds.yaml
+kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/driver.yaml
+kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/snapshot-controller.yaml
 
 # Create storage class and volume snapshot class
 echo "Creating storage class and volume snapshot class..."
@@ -188,10 +190,7 @@ kubectl apply -f https://raw.githubusercontent.com/0xMattijs/microgitops/main/k8
 
 # Wait for CSI driver to be ready
 echo "Waiting for CSI driver to be ready..."
-until kubectl get pods -n kube-system -l app=csi-do-controller -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q "Running"; do
-    echo "CSI driver not ready yet, waiting..."
-    sleep 10
-done
+kubectl wait --for=condition=ready pod -l app=csi-do-controller -n kube-system --timeout=300s
 
 # Install ArgoCD
 echo "Installing ArgoCD..."
