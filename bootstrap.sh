@@ -190,7 +190,8 @@ kubectl apply -f https://raw.githubusercontent.com/0xMattijs/microgitops/main/k8
 
 # Wait for CSI driver to be ready
 echo "Waiting for CSI driver to be ready..."
-kubectl wait --for=condition=ready pod -l app=csi-do-controller -n kube-system --timeout=300s
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=csi-do-controller -n kube-system --timeout=300s
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=csi-do-node -n kube-system --timeout=300s
 
 # Install ArgoCD
 echo "Installing ArgoCD..."
