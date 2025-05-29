@@ -64,6 +64,8 @@ S3_ENDPOINT="https://nyc3.digitaloceanspaces.com"
 
 # Other Configuration
 DOCTL_CONTEXT="gitops-context"
+# Optional: Install DigitalOcean CSI driver (true/false)
+INSTALL_CSI_DRIVER="false"
 EOF
         echo "Created .env file. Please edit it with your credentials."
         exit 1
@@ -100,8 +102,8 @@ create_remote_setup() {
 set -euo pipefail
 
 # Validate required parameters
-if [ $# -ne 8 ]; then
-    echo "Usage: $0 <GITHUB_USER> <GITHUB_REPO> <GITHUB_TOKEN> <S3_BUCKET> <S3_REGION> <S3_ENDPOINT> <DO_TOKEN> <CLUSTER_NAME>"
+if [ $# -lt 8 ]; then
+    echo "Usage: $0 <GITHUB_USER> <GITHUB_REPO> <GITHUB_TOKEN> <S3_BUCKET> <S3_REGION> <S3_ENDPOINT> <DO_TOKEN> <CLUSTER_NAME> [INSTALL_CSI_DRIVER]"
     exit 1
 fi
 
@@ -114,6 +116,7 @@ S3_REGION="$5"
 S3_ENDPOINT="$6"
 DO_TOKEN="$7"
 CLUSTER_NAME="$8"
+INSTALL_CSI_DRIVER="${9:-false}"
 
 # Validate parameters
 for var in GITHUB_USER GITHUB_REPO GITHUB_TOKEN S3_BUCKET S3_REGION S3_ENDPOINT DO_TOKEN CLUSTER_NAME; do
@@ -179,20 +182,22 @@ until kubectl get nodes 2>/dev/null; do
     sleep 10
 done
 
-# Install DigitalOcean CSI driver
-echo "Installing DigitalOcean CSI driver..."
-kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/crds.yaml
-kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/driver.yaml
-kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/snapshot-controller.yaml
+if [ "$INSTALL_CSI_DRIVER" = "true" ]; then
+    # Install DigitalOcean CSI driver
+    echo "Installing DigitalOcean CSI driver..."
+    kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/crds.yaml
+    kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/driver.yaml
+    kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/snapshot-controller.yaml
 
-# Create volume snapshot class
-echo "Creating volume snapshot class..."
-kubectl apply -f https://raw.githubusercontent.com/0xMattijs/microgitops/main/k8s/csi-driver.yaml
+    # Create volume snapshot class
+    echo "Creating volume snapshot class..."
+    kubectl apply -f https://raw.githubusercontent.com/0xMattijs/microgitops/main/k8s/csi-driver.yaml
 
-# Wait for CSI driver to be ready
-echo "Waiting for CSI driver to be ready..."
-kubectl wait --for=condition=ready pod -l app=csi-do-controller -n kube-system --timeout=300s
-kubectl wait --for=condition=ready pod -l app=csi-do-node -n kube-system --timeout=300s
+    # Wait for CSI driver to be ready
+    echo "Waiting for CSI driver to be ready..."
+    kubectl wait --for=condition=ready pod -l app=csi-do-controller -n kube-system --timeout=300s
+    kubectl wait --for=condition=ready pod -l app=csi-do-node -n kube-system --timeout=300s
+fi
 
 # Install ArgoCD
 echo "Installing ArgoCD..."
