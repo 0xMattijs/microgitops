@@ -180,7 +180,7 @@ done
 
 # Install DigitalOcean CSI Driver
 echo "Installing DigitalOcean CSI Driver..."
-kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-latest.yaml
+kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.8.0.yaml
 
 # Create storage class and volume snapshot class
 echo "Creating storage class and volume snapshot class..."
