@@ -25,6 +25,7 @@
    DO_TOKEN="your-do-token"
    DROPLET_NAME="gitops-node"
    DROPLET_SIZE="s-2vcpu-4gb"
+   DROPLET_IMAGE="ubuntu-22-04-x64"
    DROPLET_REGION="ams3"
    SSH_KEY_NAME="gitops-ssh"
 
@@ -32,16 +33,19 @@
    S3_BUCKET="gitops-backup"
    S3_REGION="nyc3"
    S3_ENDPOINT="https://nyc3.digitaloceanspaces.com"
-   ```
-3. Run bootstrap script:
 
-   ```bash
-   curl -fsSL https://raw.githubusercontent.com/0xMattijs/microgitops/main/bootstrap.sh | bash
+   # Optional: Install DigitalOcean CSI driver
+   INSTALL_CSI_DRIVER="true"
    ```
+
+3. Run bootstrap script:
+   ```bash
+   ./bootstrap.sh
+   ```
+
 4. Wait for provisioning (~2–3 minutes)
 5. Access K8s cluster via `kubectl` (kubeconfig will be automatically configured)
 6. Access ArgoCD UI:
-
    ```
    http://<droplet-ip>:30080
    Username: admin
@@ -54,35 +58,78 @@
 
 * Snapshot tarball in S3 bucket
 * Velero installed on new cluster
+* DigitalOcean CSI driver installed (if using volume snapshots)
 
 ### Steps
 
-1. Install Velero and configure S3 bucket
-2. Download backup from S3
-3. Run Velero restore:
+1. Install Velero and configure S3 bucket:
+   ```bash
+   velero install \
+     --provider aws \
+     --plugins velero/velero-plugin-for-aws:v1.5.0 \
+     --bucket $S3_BUCKET \
+     --backup-location-config region=$S3_REGION,s3ForcePathStyle=true,s3Url=$S3_ENDPOINT \
+     --secret-file ./credentials-velero
+   ```
 
+2. Download backup from S3:
+   ```bash
+   aws s3 cp s3://$S3_BUCKET/backups/<backup-name> ./backup.tar.gz
+   ```
+
+3. Run Velero restore:
    ```bash
    velero restore create --from-backup <backup-name>
    ```
-4. Wait for pods to come back online
+
+4. Wait for pods to come back online:
+   ```bash
+   kubectl get pods -A -w
+   ```
 
 ## Scaling Guide
 
 ### Scale-Up (Vertical)
 
-1. Power off droplet
-2. Resize to larger plan via DO control panel or API
-3. Power on and verify with `kubectl get nodes`
+1. Power off droplet:
+   ```bash
+   doctl compute droplet-action power-off <droplet-id>
+   ```
+
+2. Resize to larger plan:
+   ```bash
+   doctl compute droplet-action resize <droplet-id> --size <new-size>
+   ```
+
+3. Power on and verify:
+   ```bash
+   doctl compute droplet-action power-on <droplet-id>
+   kubectl get nodes
+   ```
 
 ### Scale-Out (Horizontal)
 
-1. Create new DO droplet(s)
-2. Join node using K3s token:
-
+1. Create new DO droplet(s):
    ```bash
-   curl -sfL https://get.k3s.io | K3S_URL=https://<main-node-ip>:6443 K3S_TOKEN=<token> sh -
+   doctl compute droplet create <new-node-name> \
+     --size $DROPLET_SIZE \
+     --image $DROPLET_IMAGE \
+     --region $DROPLET_REGION \
+     --ssh-keys $SSH_KEY_ID
    ```
-3. Confirm with `kubectl get nodes`
+
+2. Join node using K3s token:
+   ```bash
+   curl -sfL https://get.k3s.io | \
+     K3S_URL=https://<main-node-ip>:6443 \
+     K3S_TOKEN=<token> \
+     sh -
+   ```
+
+3. Verify node addition:
+   ```bash
+   kubectl get nodes
+   ```
 
 ## Security & Secrets Handling
 
@@ -110,7 +157,6 @@ type: Opaque
 ```
 
 Apply using:
-
 ```bash
 kubectl apply -f github-creds.yaml
 ```
@@ -221,8 +267,8 @@ spec:
 
 1. Check CSI driver status:
    ```bash
-   kubectl get pods -n kube-system -l app=csi-do-controller
-   kubectl get pods -n kube-system -l app=csi-do-node
+   kubectl get pods -n kube-system -l app.kubernetes.io/name=csi-do-controller
+   kubectl get pods -n kube-system -l app.kubernetes.io/name=csi-do-node
    ```
 
 2. Check storage class:
@@ -242,6 +288,25 @@ spec:
    kubectl get volumesnapshot
    kubectl get volumesnapshotcontent
    ```
+
+## Future Enhancements
+
+* HA setup (K3s etcd cluster mode)
+* DNS automation (Cloudflare integration)
+* Secrets management via Sealed Secrets or Vault
+* Monitoring/observability (Prometheus stack)
+* GitHub Actions or CI/CD integration
+* App-level RBAC and multi-tenancy
+
+## Risks & Mitigations
+
+| Risk                         | Mitigation                              |
+| ---------------------------- | --------------------------------------- |
+| Droplet failure or data loss | Full snapshot + restore with Velero     |
+| Secrets in plaintext         | Use sealed secrets / in-cluster Secrets |
+| DO API rate limits           | Use retries and exponential backoff     |
+| Manual restore complexity    | Automate with bootstrap restore mode    |
+| Network or DNS downtime      | Use resilient DNS + monitoring setup    |
 
 ---
 
