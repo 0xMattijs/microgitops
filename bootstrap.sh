@@ -184,8 +184,8 @@ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean
 kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/driver.yaml
 kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/snapshot-controller.yaml
 
-# Create storage class and volume snapshot class
-echo "Creating storage class and volume snapshot class..."
+# Create volume snapshot class
+echo "Creating volume snapshot class..."
 kubectl apply -f https://raw.githubusercontent.com/0xMattijs/microgitops/main/k8s/csi-driver.yaml
 
 # Wait for CSI driver to be ready
