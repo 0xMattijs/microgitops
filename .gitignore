@@ -1,0 +1,20 @@
+# Ignore the GitOps cluster directory
+gitops-cluster/
+
+# Ignore cluster state file
+cluster_state.txt
+
+# Ignore any local environment files
+.env
+*.env
+
+# Ignore SSH keys
+*.pem
+*.key
+*.pub
+
+# Ignore kubeconfig files
+kubeconfig
+*.kubeconfig 
+
+remote-setup.sh
