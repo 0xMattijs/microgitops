@@ -39,9 +39,9 @@ echo "Starting GitOps cluster bootstrap..."
 # Store the current directory
 CURRENT_DIR="$(pwd)"
 
-# Function to create example.env if it doesn't exist
+# Function to create .env if it doesn't exist
 create_example_env() {
-    local env_file="$CURRENT_DIR/example.env"
+    local env_file="$CURRENT_DIR/.env"
     if [ ! -f "$env_file" ]; then
         cat > "$env_file" <<EOF
 # GitHub Configuration
@@ -64,24 +64,24 @@ S3_ENDPOINT="https://nyc3.digitaloceanspaces.com"
 # Other Configuration
 DOCTL_CONTEXT="gitops-context"
 EOF
-        echo "Created example.env file. Please edit it with your credentials."
+        echo "Created .env file. Please edit it with your credentials."
         exit 1
     fi
 }
 
-# Create example.env if it doesn't exist
+# Create .env if it doesn't exist
 create_example_env
 
 # Source environment variables
 set -a
-source "$CURRENT_DIR/example.env"
+source "$CURRENT_DIR/.env"
 set +a
 
 # Validate required environment variables
 required_vars=("GITHUB_USER" "GITHUB_TOKEN" "DO_TOKEN")
 for var in "${required_vars[@]}"; do
     if [ -z "${!var:-}" ]; then
-        echo "Error: $var is not set in example.env"
+        echo "Error: $var is not set in .env"
         exit 1
     fi
 done

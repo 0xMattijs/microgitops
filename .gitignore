@@ -6,7 +6,6 @@ cluster_state.txt
 
 # Ignore any local environment files
 .env
-*.env
 
 # Ignore SSH keys
 *.pem

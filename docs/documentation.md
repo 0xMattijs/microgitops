@@ -13,7 +13,7 @@
 ### Bootstrap Steps
 
 1. Clone the GitOps repo or use template
-2. Set environment variables in `example.env`:
+2. Set environment variables in `.env`:
 
    ```bash
    # GitHub Configuration

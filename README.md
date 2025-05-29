@@ -41,7 +41,7 @@ Before running the script, ensure you have:
 
 ## Configuration
 
-The script will create an `example.env` file if it doesn't exist. Edit this file with your credentials:
+The script will create an `.env` file if it doesn't exist. Edit this file with your credentials:
 
 ```bash
 # GitHub Configuration
@@ -139,7 +139,7 @@ See [docs/documentation.md](docs/documentation.md) for detailed backup and resto
 If you encounter issues:
 
 1. Check the script output for error messages
-2. Verify your credentials in `example.env`
+2. Verify your credentials in `.env`
 3. Ensure your GitHub token has the necessary permissions
 4. Check if the DigitalOcean API token is valid
 
