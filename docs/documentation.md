@@ -10,11 +10,11 @@
 * SSH access setup (script generates SSH key)
 * External S3-compatible storage (e.g., DigitalOcean Spaces)
 
-### Bootstrap Steps
+### Bootstrap Methods
 
-1. Clone the GitOps repo or use template
-2. Set environment variables in `.env`:
+#### Option 1: Direct Installation (Recommended)
 
+1. Create a `.env` file in your current directory:
    ```bash
    # GitHub Configuration
    GITHUB_USER="your-gh-username"
@@ -38,18 +38,79 @@
    INSTALL_CSI_DRIVER="true"
    ```
 
-3. Run bootstrap script:
+2. Run the bootstrap script directly from GitHub:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/0xMattijs/microgitops/main/bootstrap.sh | bash
+   ```
+
+#### Option 2: Local Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/0xMattijs/microgitops.git
+   cd microgitops
+   ```
+
+2. Create a `.env` file with your credentials (same as Option 1)
+
+3. Run the bootstrap script:
    ```bash
    ./bootstrap.sh
    ```
 
-4. Wait for provisioning (~2–3 minutes)
-5. Access K8s cluster via `kubectl` (kubeconfig will be automatically configured)
-6. Access ArgoCD UI:
+### What the Script Does
+
+1. Creates a new GitHub repository for your GitOps configuration
+   - Initializes with basic Kubernetes manifests
+   - Sets up GitHub Actions workflows
+   - Configures branch protection
+
+2. Sets up a DigitalOcean droplet with K3s
+   - Installs latest stable K3s
+   - Configures system security
+   - Sets up networking
+
+3. Installs and configures ArgoCD
+   - Deploys ArgoCD server
+   - Configures NodePort service
+   - Sets up initial admin credentials
+
+4. Creates necessary Kubernetes resources
+   - Namespaces
+   - Service accounts
+   - RBAC rules
+   - Network policies
+
+5. Sets up S3 backup storage
+   - Creates S3 bucket
+   - Configures access keys
+   - Sets up backup policies
+
+6. Configures your local kubectl
+   - Downloads kubeconfig
+   - Updates server address
+   - Sets up context
+
+### Accessing Your Cluster
+
+After the script completes:
+
+1. Access the ArgoCD UI:
    ```
    http://<droplet-ip>:30080
    Username: admin
-   Password: <retrieved from ArgoCD secret>
+   Password: <displayed in script output>
+   ```
+
+2. Use kubectl:
+   ```bash
+   # Verify cluster access
+   kubectl get nodes
+   kubectl get pods -A
+   
+   # Check ArgoCD status
+   kubectl get pods -n argocd
+   kubectl get svc -n argocd
    ```
 
 ## Restore Procedure

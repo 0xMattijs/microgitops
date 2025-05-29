@@ -13,13 +13,9 @@ A bootstrappable, self-contained, GitOps-driven Kubernetes system that can be de
 
 ## Quick Start
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/0xMattijs/microgitops.git
-   cd microgitops
-   ```
+### Option 1: Direct Installation (Recommended)
 
-2. Create a `.env` file with your credentials:
+1. Create a `.env` file in your current directory:
    ```bash
    # GitHub Configuration
    GITHUB_USER="your-gh-username"
@@ -43,14 +39,31 @@ A bootstrappable, self-contained, GitOps-driven Kubernetes system that can be de
    INSTALL_CSI_DRIVER="true"
    ```
 
+2. Run the bootstrap script directly from GitHub:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/0xMattijs/microgitops/main/bootstrap.sh | bash
+   ```
+
+### Option 2: Local Installation
+
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/0xMattijs/microgitops.git
+   cd microgitops
+   ```
+
+2. Create a `.env` file with your credentials (same as Option 1)
+
 3. Run the bootstrap script:
    ```bash
    ./bootstrap.sh
    ```
 
-4. Access your cluster:
-   - Kubernetes: `kubectl get nodes`
-   - ArgoCD UI: `http://<droplet-ip>:30080` (admin / password from secret)
+### Access Your Cluster
+
+After the script completes:
+- Kubernetes: `kubectl get nodes`
+- ArgoCD UI: `http://<droplet-ip>:30080` (admin / password from secret)
 
 ## Components
 
