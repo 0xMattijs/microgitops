@@ -183,6 +183,10 @@ until kubectl get nodes 2>/dev/null; do
 done
 
 if [ "$INSTALL_CSI_DRIVER" = "true" ]; then
+    # Create DigitalOcean secret for CSI driver
+    echo "Creating DigitalOcean secret for CSI driver..."
+    kubectl create secret generic digitalocean --namespace kube-system --from-literal=access-token="$DO_TOKEN"
+
     # Install DigitalOcean CSI driver
     echo "Installing DigitalOcean CSI driver..."
     kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/crds.yaml
