@@ -184,32 +184,7 @@ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean
 
 # Create storage class and volume snapshot class
 echo "Creating storage class and volume snapshot class..."
-cat > /tmp/csi-config.yaml << 'EOF'
----
-# Storage Class for DigitalOcean Block Storage
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: do-block-storage
-  annotations:
-    storageclass.kubernetes.io/is-default-class: "true"
-provisioner: dobs.csi.digitalocean.com
-parameters:
-  fsType: ext4
-  allowVolumeExpansion: "true"
-
----
-# Volume Snapshot Class
-apiVersion: snapshot.storage.k8s.io/v1
-kind: VolumeSnapshotClass
-metadata:
-  name: do-block-storage-snapshot
-driver: dobs.csi.digitalocean.com
-deletionPolicy: Delete
-EOF
-
-kubectl apply -f /tmp/csi-config.yaml
-rm /tmp/csi-config.yaml
+kubectl apply -f https://raw.githubusercontent.com/0xMattijs/microgitops/main/k8s/csi-driver.yaml
 
 # Wait for CSI driver to be ready
 echo "Waiting for CSI driver to be ready..."
