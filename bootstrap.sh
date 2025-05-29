@@ -53,6 +53,7 @@ GITHUB_REPO="gitops-cluster"
 DO_TOKEN="your-do-token"
 DROPLET_NAME="gitops-node"
 DROPLET_SIZE="s-2vcpu-4gb"
+DROPLET_IMAGE="ubuntu-22-04-x64"
 DROPLET_REGION="ams3"
 SSH_KEY_NAME="gitops-ssh"
 
@@ -506,9 +507,9 @@ SSH_KEY_ID=$(doctl compute ssh-key list | grep "$SSH_KEY_NAME" | awk '{print $1}
 # Create droplet
 echo "Creating droplet..."
 DROPLET_ID=$(doctl compute droplet create "$CLUSTER_NAME" \
-    --size s-2vcpu-4gb \
-    --image ubuntu-22-04-x64 \
-    --region ams3 \
+    --size "$DROPLET_SIZE" \
+    --image "$DROPLET_IMAGE" \
+    --region "$DROPLET_REGION" \
     --ssh-keys "$SSH_KEY_ID" \
     --wait \
     --format ID \
