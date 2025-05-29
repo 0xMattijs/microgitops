@@ -65,7 +65,7 @@ S3_ENDPOINT="https://nyc3.digitaloceanspaces.com"
 # Other Configuration
 DOCTL_CONTEXT="gitops-context"
 # Optional: Install DigitalOcean CSI driver (true/false)
-INSTALL_CSI_DRIVER="false"
+INSTALL_CSI_DRIVER="true"
 EOF
         echo "Created .env file. Please edit it with your credentials."
         exit 1
@@ -183,24 +183,122 @@ until kubectl get nodes 2>/dev/null; do
 done
 
 if [ "$INSTALL_CSI_DRIVER" = "true" ]; then
+    echo "=== Starting CSI Driver Installation ==="
+    
     # Create DigitalOcean secret for CSI driver
     echo "Creating DigitalOcean secret for CSI driver..."
-    kubectl create secret generic digitalocean --namespace kube-system --from-literal=access-token="$DO_TOKEN"
+    if ! kubectl create secret generic digitalocean --namespace kube-system --from-literal=access-token="$DO_TOKEN"; then
+        echo "ERROR: Failed to create DigitalOcean secret"
+        exit 1
+    fi
+    echo "✓ DigitalOcean secret created successfully"
 
     # Install DigitalOcean CSI driver
-    echo "Installing DigitalOcean CSI driver..."
-    kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/crds.yaml
-    kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/driver.yaml
-    kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/snapshot-controller.yaml
+    echo "Installing DigitalOcean CSI driver CRDs..."
+    if ! kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/crds.yaml; then
+        echo "ERROR: Failed to install CSI driver CRDs"
+        exit 1
+    fi
+    echo "✓ CSI driver CRDs installed successfully"
+
+    echo "Installing CSI driver components..."
+    if ! kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/driver.yaml; then
+        echo "ERROR: Failed to install CSI driver components"
+        exit 1
+    fi
+    echo "✓ CSI driver components installed successfully"
+
+    echo "Installing snapshot controller..."
+    if ! kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v4.14.0/snapshot-controller.yaml; then
+        echo "ERROR: Failed to install snapshot controller"
+        exit 1
+    fi
+    echo "✓ Snapshot controller installed successfully"
 
     # Create volume snapshot class
     echo "Creating volume snapshot class..."
-    kubectl apply -f https://raw.githubusercontent.com/0xMattijs/microgitops/main/k8s/csi-driver.yaml
+    if ! kubectl apply -f https://raw.githubusercontent.com/0xMattijs/microgitops/main/k8s/csi-driver.yaml; then
+        echo "ERROR: Failed to create volume snapshot class"
+        exit 1
+    fi
+    echo "✓ Volume snapshot class created successfully"
 
     # Wait for CSI driver to be ready
     echo "Waiting for CSI driver to be ready..."
-    kubectl wait --for=condition=ready pod -l app=csi-do-controller -n kube-system --timeout=300s
-    kubectl wait --for=condition=ready pod -l app=csi-do-node -n kube-system --timeout=300s
+    
+    # Add initial delay to allow resources to be scheduled
+    echo "Waiting 30 seconds for resources to be scheduled..."
+    sleep 30
+    
+    echo "Checking for CSI controller pods..."
+    echo "Current pod status:"
+    kubectl get pods -n kube-system -l app=csi-do-controller
+    
+    # Wait for controller pods with increased timeout and retry
+    max_retries=3
+    retry=0
+    while [ $retry -lt $max_retries ]; do
+        if kubectl wait --for=condition=ready pod -l app=csi-do-controller -n kube-system --timeout=600s; then
+            break
+        fi
+        retry=$((retry + 1))
+        echo "Retry $retry/$max_retries: CSI controller pods not ready yet"
+        echo "Current pod status:"
+        kubectl get pods -n kube-system -l app=csi-do-controller
+        if [ $retry -lt $max_retries ]; then
+            echo "Waiting 30 seconds before retry..."
+            sleep 30
+        fi
+    done
+    
+    if [ $retry -eq $max_retries ]; then
+        echo "ERROR: CSI controller pods failed to become ready after $max_retries attempts"
+        echo "Final pod status:"
+        kubectl get pods -n kube-system -l app=csi-do-controller
+        echo "Checking all pods in kube-system namespace:"
+        kubectl get pods -n kube-system
+        exit 1
+    fi
+    echo "✓ CSI controller pods are ready"
+
+    echo "Checking for CSI node pods..."
+    echo "Current pod status:"
+    kubectl get pods -n kube-system -l app=csi-do-node
+    
+    # Wait for node pods with increased timeout and retry
+    retry=0
+    while [ $retry -lt $max_retries ]; do
+        if kubectl wait --for=condition=ready pod -l app=csi-do-node -n kube-system --timeout=600s; then
+            break
+        fi
+        retry=$((retry + 1))
+        echo "Retry $retry/$max_retries: CSI node pods not ready yet"
+        echo "Current pod status:"
+        kubectl get pods -n kube-system -l app=csi-do-node
+        if [ $retry -lt $max_retries ]; then
+            echo "Waiting 30 seconds before retry..."
+            sleep 30
+        fi
+    done
+    
+    if [ $retry -eq $max_retries ]; then
+        echo "ERROR: CSI node pods failed to become ready after $max_retries attempts"
+        echo "Final pod status:"
+        kubectl get pods -n kube-system -l app=csi-do-node
+        echo "Checking all pods in kube-system namespace:"
+        kubectl get pods -n kube-system
+        exit 1
+    fi
+    echo "✓ CSI node pods are ready"
+
+    echo "Verifying storage classes..."
+    if ! kubectl get storageclass do-block-storage; then
+        echo "ERROR: Storage class 'do-block-storage' not found"
+        exit 1
+    fi
+    echo "✓ Storage classes verified"
+
+    echo "=== CSI Driver Installation Completed Successfully ==="
 fi
 
 # Install ArgoCD
@@ -558,7 +656,8 @@ scp -i "$SSH_KEY_PATH" -o StrictHostKeyChecking=no "$(pwd)/remote-setup.sh" root
 
 # Execute remote setup
 echo "Executing remote setup..."
-ssh -i "$SSH_KEY_PATH" -o StrictHostKeyChecking=no root@"$DROPLET_IP" "bash /root/remote-setup.sh '$GITHUB_USER' '$GITHUB_REPO' '$GITHUB_TOKEN' '$S3_BUCKET' '$S3_REGION' '$S3_ENDPOINT' '$DO_TOKEN' '$CLUSTER_NAME'"
+INSTALL_CSI_DRIVER="${INSTALL_CSI_DRIVER:-false}"  # Set default value if not set
+ssh -i "$SSH_KEY_PATH" -o StrictHostKeyChecking=no root@"$DROPLET_IP" "bash /root/remote-setup.sh '$GITHUB_USER' '$GITHUB_REPO' '$GITHUB_TOKEN' '$S3_BUCKET' '$S3_REGION' '$S3_ENDPOINT' '$DO_TOKEN' '$CLUSTER_NAME' '$INSTALL_CSI_DRIVER'"
 
 # Get kubeconfig
 echo "Getting kubeconfig..."
