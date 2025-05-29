@@ -35,7 +35,7 @@ A bootstrappable, self-contained, GitOps-driven Kubernetes system that can be de
    S3_REGION="nyc3"
    S3_ENDPOINT="https://nyc3.digitaloceanspaces.com"
 
-   # Optional: Install DigitalOcean CSI driver
+   # CSI Driver Configuration
    INSTALL_CSI_DRIVER="true"
    ```
 
