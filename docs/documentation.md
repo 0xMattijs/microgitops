@@ -150,6 +150,99 @@ kubectl get svc -n argocd
 journalctl -u k3s
 ```
 
+## Storage
+
+### DigitalOcean CSI Driver
+
+The cluster uses the DigitalOcean CSI driver for dynamic volume provisioning. This allows you to:
+
+1. Create persistent volumes on demand
+2. Automatically provision block storage
+3. Take volume snapshots
+4. Expand volumes when needed
+
+#### Storage Class
+
+The default storage class `do-block-storage` is configured with:
+- Filesystem: ext4
+- Volume expansion: enabled
+- Default class: yes
+
+#### Creating a PVC
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: do-block-storage
+```
+
+#### Taking a Snapshot
+
+```yaml
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: my-snapshot
+spec:
+  volumeSnapshotClassName: do-block-storage-snapshot
+  source:
+    persistentVolumeClaimName: my-pvc
+```
+
+#### Restoring from Snapshot
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-restored-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: do-block-storage
+  dataSource:
+    name: my-snapshot
+    kind: VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io
+```
+
+#### Troubleshooting
+
+1. Check CSI driver status:
+   ```bash
+   kubectl get pods -n kube-system -l app=csi-do-controller
+   kubectl get pods -n kube-system -l app=csi-do-node
+   ```
+
+2. Check storage class:
+   ```bash
+   kubectl get storageclass
+   kubectl describe storageclass do-block-storage
+   ```
+
+3. Check PVC status:
+   ```bash
+   kubectl get pvc
+   kubectl describe pvc <pvc-name>
+   ```
+
+4. Check volume snapshots:
+   ```bash
+   kubectl get volumesnapshot
+   kubectl get volumesnapshotcontent
+   ```
+
 ---
 
 This documentation is the operational guide for setting up, maintaining, and restoring the GitOps-based Kubernetes environment as defined in the project PRD.

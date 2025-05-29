@@ -11,6 +11,29 @@ A minimal GitOps-driven Kubernetes system that sets up a K3s cluster with ArgoCD
 - 🔍 Built-in monitoring and logging
 - 🔧 Easy scaling and maintenance
 
+## TODO
+
+### High Priority
+- [ ] Implement DigitalOcean CSI driver for dynamic volume provisioning
+- [ ] Add Velero for backup and restore functionality
+- [ ] Set up proper secret management using Sealed Secrets
+- [ ] Add support for cluster scaling (both vertical and horizontal)
+- [ ] Implement proper error handling and retry mechanisms
+
+### Medium Priority
+- [ ] Add Prometheus stack for monitoring
+- [ ] Implement logging solution (e.g., Loki)
+- [ ] Add support for K3s HA mode
+- [ ] Create comprehensive backup and restore documentation
+- [ ] Add cost monitoring and optimization features
+
+### Low Priority
+- [ ] Add DNS automation (Cloudflare integration)
+- [ ] Implement GitHub Actions workflows
+- [ ] Add multi-tenancy support
+- [ ] Create detailed troubleshooting guide
+- [ ] Add performance benchmarking tools
+
 ## Quick Start
 
 ```bash

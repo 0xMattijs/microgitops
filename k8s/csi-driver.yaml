@@ -1,0 +1,29 @@
+---
+# CSI Driver installation
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-system
+
+---
+# Storage Class for DigitalOcean Block Storage
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: do-block-storage
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: dobs.csi.digitalocean.com
+parameters:
+  fsType: ext4
+  # Optional: Enable volume expansion
+  allowVolumeExpansion: "true"
+
+---
+# Volume Snapshot Class
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: do-block-storage-snapshot
+driver: dobs.csi.digitalocean.com
+deletionPolicy: Delete 
